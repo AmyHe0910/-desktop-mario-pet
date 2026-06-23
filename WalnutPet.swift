@@ -76,11 +76,11 @@ let idleGrid: Grid = [
 ]
 
 let jumpGrid: Grid = [
-    [.T,.T,.T,.T,.R,.R,.R,.R,.R,.R,.T,.T,.S,.S,.S,.T],
-    [.T,.T,.T,.R,.R,.R,.R,.R,.R,.R,.R,.R,.R,.S,.S,.T],
-    [.T,.T,.T,.N,.N,.N,.S,.S,.S,.N,.S,.T,.R,.R,.R,.T],
-    [.T,.T,.N,.S,.N,.S,.S,.S,.S,.N,.S,.S,.S,.R,.R,.T],
-    [.T,.T,.N,.S,.N,.N,.S,.S,.S,.S,.N,.S,.S,.S,.R,.T],
+    [.T,.S,.T,.T,.R,.R,.R,.R,.R,.R,.T,.T,.S,.S,.S,.T],
+    [.T,.S,.S,.R,.R,.R,.R,.R,.R,.R,.R,.R,.R,.S,.S,.T],
+    [.T,.S,.S,.N,.N,.N,.S,.S,.S,.N,.S,.T,.R,.R,.R,.T],
+    [.T,.T,.S,.S,.N,.S,.S,.S,.S,.N,.S,.S,.S,.R,.R,.T],
+    [.T,.T,.S,.S,.N,.N,.S,.S,.S,.S,.N,.S,.S,.S,.R,.T],
     [.T,.T,.N,.N,.S,.S,.S,.S,.S,.N,.N,.N,.N,.R,.T,.T],
     [.T,.T,.T,.T,.S,.S,.S,.S,.S,.S,.S,.S,.R,.R,.T,.T],
     [.T,.R,.R,.R,.R,.B,.R,.R,.R,.R,.B,.R,.R,.T,.T,.T],
