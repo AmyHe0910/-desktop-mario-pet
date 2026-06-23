@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import AVFoundation
 
 enum P {
     case R, r, S, B, W, Y, N, n, K, G, g, M, m, T
@@ -25,6 +26,28 @@ enum P {
 
 let PX: CGFloat = 8
 let HOVER = ["It's-a me!", "Wahoo!", "Yippee!", "Let's-a go!", "Here we go!"]
+
+var themePlayer: AVAudioPlayer? = {
+    // Look for mario_ground_theme in app bundle, then alongside the executable
+    let candidates = [
+        Bundle.main.url(forResource: "mario_ground_theme", withExtension: "m4a"),
+        Bundle.main.url(forResource: "mario_ground_theme", withExtension: "mp3"),
+        Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("mario_ground_theme.m4a"),
+        URL(fileURLWithPath: "/Users/amy/.claude/projects/小胡桃宠物/mario_ground_theme.m4a"),
+    ]
+    for url in candidates {
+        if let u = url, FileManager.default.fileExists(atPath: u.path) {
+            return try? AVAudioPlayer(contentsOf: u)
+        }
+    }
+    return nil
+}()
+
+func playTheme() {
+    themePlayer?.currentTime = 0
+    themePlayer?.volume = 0.35
+    themePlayer?.play()
+}
 
 typealias Row = [P]
 typealias Grid = [Row]
@@ -194,7 +217,6 @@ struct MarioView: View {
     @State private var itemY: CGFloat = 0
     @State private var itemCoin = true
     @State private var lastAction = Date()
-    @State private var facingLeft = false
     @State private var hovering = false
     @State private var hoverTxt = "It's-a me!"
 
@@ -211,14 +233,13 @@ struct MarioView: View {
                 Bubble(text: bTxt).offset(y: -6).transition(.scale.combined(with: .opacity))
             }
             spriteView(currentGrid(), px: PX)
-                .scaleEffect(x: facingLeft ? -1 : 1, y: 1)
                 .scaleEffect(sc).offset(y: (bShow ? 28 : 0) + bY)
         }
         .frame(width: 200, height: 260)
         .offset(x: ox, y: oy)
         .animation(.spring(response: 0.35, dampingFraction: 0.55), value: ox)
         .animation(.spring(response: 0.35, dampingFraction: 0.55), value: oy)
-        .onAppear { lastAction = Date(); scheduleWalk(); scheduleWiggle() }
+        .onAppear { lastAction = Date(); scheduleWalk(); scheduleWiggle(); playTheme() }
         .onHover { h in hovering = h; if h { hoverTxt = HOVER.randomElement()! }
             h ? NSCursor.pointingHand.push() : NSCursor.pop() }
         .onTapGesture { lastAction = Date(); tap() }
@@ -252,7 +273,7 @@ struct MarioView: View {
 
     func tap() {
         if asleep { wake(); return }
-        withAnimation(.easeInOut(duration: 0.3)) { ox = 0 }
+        ox = 0
         hovering = false; mode = .jumping
         withAnimation(.easeOut(duration: 0.15)) { bY = -40; sc = 1.1 }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.3)) { bY = 0; sc = 1.0 }
@@ -264,7 +285,7 @@ struct MarioView: View {
     }
 
     func wake() {
-        withAnimation(.easeInOut(duration: 0.3)) { ox = 0 }
+        ox = 0
         asleep = false; mode = .jumping
         withAnimation(.easeOut(duration: 0.15)) { bY = -30 }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.3)) { bY = 0 }
@@ -274,7 +295,7 @@ struct MarioView: View {
     }
 
     func scheduleWalk() {
-        _ = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { _ in
+        _ = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { _ in
             guard mode == .idle else { scheduleWalk(); return }
             walk()
         }
@@ -290,55 +311,37 @@ struct MarioView: View {
     }
 
     func playSound(_ type: String) {
-        let freq1: Float = type == "coin" ? 1500 : 600
-        let freq2: Float = type == "coin" ? 2000 : 900
-        let dur: Float = 0.1
-        let sr: Int = 22050
-        let n = Int(dur * Float(sr))
-        var pcm = [Int16](repeating: 0, count: n)
-        for i in 0..<n {
-            let t = Float(i) / Float(sr)
-            let env = max(0, 1.0 - t / dur)
-            let f = t < dur * 0.3 ? freq1 : freq2
-            pcm[i] = Int16(sin(2 * .pi * f * t) * env * 8000)
+        let filename = type == "coin" ? "coin.wav" : "mushroom.wav"
+        let candidates = [
+            Bundle.main.url(forResource: filename.replacingOccurrences(of: ".wav", with: ""), withExtension: "wav"),
+            Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent(filename),
+            URL(fileURLWithPath: "/Users/amy/.claude/projects/小胡桃宠物/\(filename)"),
+        ]
+        for url in candidates {
+            if let u = url, FileManager.default.fileExists(atPath: u.path) {
+                NSSound(contentsOf: u, byReference: false)?.play()
+                return
+            }
         }
-        var header = Data()
-        header.append("RIFF".data(using: .ascii)!)
-        var fileSize = UInt32(36 + pcm.count * 2).littleEndian
-        header.append(Data(bytes: &fileSize, count: 4))
-        header.append("WAVE".data(using: .ascii)!)
-        header.append("fmt ".data(using: .ascii)!)
-        var fmtSize: UInt32 = 16; header.append(Data(bytes: &fmtSize, count: 4))
-        var fmtTag: UInt16 = 1; header.append(Data(bytes: &fmtTag, count: 2))
-        var ch: UInt16 = 1; header.append(Data(bytes: &ch, count: 2))
-        var srate: UInt32 = UInt32(sr).littleEndian; header.append(Data(bytes: &srate, count: 4))
-        var byteRate = UInt32(sr * 2).littleEndian; header.append(Data(bytes: &byteRate, count: 4))
-        var block: UInt16 = 2; header.append(Data(bytes: &block, count: 2))
-        var bps: UInt16 = 16; header.append(Data(bytes: &bps, count: 2))
-        header.append("data".data(using: .ascii)!)
-        var dsize = UInt32(pcm.count * 2).littleEndian; header.append(Data(bytes: &dsize, count: 4))
-        let raw = pcm.withUnsafeBytes { Data($0) }
-        let wavData = header + raw
-        NSSound(data: wavData)?.play()
     }
 
     func walk() { guard mode == .idle else { return }; mode = .walking
-        let dist: CGFloat = 300
-        let targetX: CGFloat = Bool.random() ? dist : -dist
-        facingLeft = targetX < 0
-        let steps = 20
-        let dx = targetX - ox
+        let dist: CGFloat = 120; let steps = 10
         var step = 0
-        Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { t in
-            guard mode == .walking else { t.invalidate(); withAnimation { ox = 0 }; return }
-            wf += 1
-            step += 1
-            ox = ox + dx / CGFloat(steps)
+        Timer.scheduledTimer(withTimeInterval: 0.09, repeats: true) { t in
+            guard mode == .walking else { t.invalidate(); ox = 0; return }
+            wf += 1; step += 1
+            ox = dist * CGFloat(step) / CGFloat(steps)
             if step >= steps {
                 t.invalidate()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation(.easeInOut(duration: 0.6)) { ox = 0; facingLeft = false }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { mode = .idle; scheduleWalk() }
+                var s2 = 0; let s2start = ox
+                Timer.scheduledTimer(withTimeInterval: 0.09, repeats: true) { t2 in
+                    guard mode == .walking else { t2.invalidate(); ox = 0; return }
+                    wf += 1; s2 += 1
+                    ox = s2start - s2start * CGFloat(s2) / CGFloat(steps)
+                    if s2 >= steps { t2.invalidate()
+                        ox = 0; mode = .idle; scheduleWalk()
+                    }
                 }
             }
         }

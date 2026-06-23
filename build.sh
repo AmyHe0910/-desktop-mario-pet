@@ -17,12 +17,18 @@ mkdir -p "${BUNDLE_DIR}/Contents/Resources"
 # Copy Info.plist
 cp Info.plist "${BUNDLE_DIR}/Contents/Info.plist"
 
+# Copy audio files into bundle
+for audio in mario_ground_theme.m4a mario_ground_theme.mp3 coin.wav mushroom.wav; do
+    [ -f "$audio" ] && cp "$audio" "${BUNDLE_DIR}/Contents/Resources/" && echo "  📦 $audio"
+done
+
 # Compile
 SDK=$(xcrun --show-sdk-path)
 swiftc WalnutPet.swift \
     -o "${BUNDLE_DIR}/Contents/MacOS/${EXEC_NAME}" \
     -framework SwiftUI \
     -framework AppKit \
+    -framework AVFoundation \
     -sdk "${SDK}" \
     -O
 
