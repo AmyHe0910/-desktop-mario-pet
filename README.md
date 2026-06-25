@@ -4,7 +4,7 @@
 
 Floating, transparent window — Mario walks, jumps, and drops coins while you work.
 
-![Mario](preview.gif)
+▶️ [查看演示录屏](demo.mov)
 
 ## Features
 
@@ -14,7 +14,7 @@ Floating, transparent window — Mario walks, jumps, and drops coins while you w
 | 👆 Click | Jump + 🪙 coin or 🍄 mushroom + sound |
 | ✋ Drag | Pick up and move anywhere |
 | 🚶 20s idle | 120px stroll right and back |
-| 🔉 Sound | Synthesized coin/mushroom effects |
+| 🔉 Sound | Original SMB coin/mushroom WAV + theme music |
 | 🚀 Auto-start | Optional LaunchAgent for login |
 
 ## Quick Start
